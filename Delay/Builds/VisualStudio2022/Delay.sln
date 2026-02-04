@@ -1,0 +1,59 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio Version 17
+
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Delay - Standalone Plugin", "Delay_StandalonePlugin.vcxproj", "{02A8ED79-5EB6-E356-1DFA-ED8C2222CDCB}"
+	ProjectSection(ProjectDependencies) = postProject
+		{7982CC26-EE2C-9EA2-DB6D-974A5A0A7328} = {7982CC26-EE2C-9EA2-DB6D-974A5A0A7328}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Delay - VST3", "Delay_VST3.vcxproj", "{0B45A17B-2854-CD9E-1F7F-C638234D513F}"
+	ProjectSection(ProjectDependencies) = postProject
+		{7982CC26-EE2C-9EA2-DB6D-974A5A0A7328} = {7982CC26-EE2C-9EA2-DB6D-974A5A0A7328}
+		{5D779B4B-C63B-84CB-A63A-D07CFA5596DE} = {5D779B4B-C63B-84CB-A63A-D07CFA5596DE}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Delay - Shared Code", "Delay_SharedCode.vcxproj", "{7982CC26-EE2C-9EA2-DB6D-974A5A0A7328}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Delay - VST3 Manifest Helper", "Delay_VST3ManifestHelper.vcxproj", "{5D779B4B-C63B-84CB-A63A-D07CFA5596DE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0B45A17B-2854-CD9E-1F7F-C638234D513F}.Debug|Win32.ActiveCfg = Debug|Win32
+		{0B45A17B-2854-CD9E-1F7F-C638234D513F}.Debug|Win32.Build.0 = Debug|Win32
+		{0B45A17B-2854-CD9E-1F7F-C638234D513F}.Debug|x64.ActiveCfg = Debug|x64
+		{0B45A17B-2854-CD9E-1F7F-C638234D513F}.Debug|x64.Build.0 = Debug|x64
+		{0B45A17B-2854-CD9E-1F7F-C638234D513F}.Release|Win32.ActiveCfg = Release|Win32
+		{0B45A17B-2854-CD9E-1F7F-C638234D513F}.Release|x64.ActiveCfg = Release|x64
+		{0B45A17B-2854-CD9E-1F7F-C638234D513F}.Release|x64.Build.0 = Release|x64
+		{02A8ED79-5EB6-E356-1DFA-ED8C2222CDCB}.Debug|Win32.ActiveCfg = Debug|Win32
+		{02A8ED79-5EB6-E356-1DFA-ED8C2222CDCB}.Debug|Win32.Build.0 = Debug|Win32
+		{02A8ED79-5EB6-E356-1DFA-ED8C2222CDCB}.Debug|x64.ActiveCfg = Debug|x64
+		{02A8ED79-5EB6-E356-1DFA-ED8C2222CDCB}.Debug|x64.Build.0 = Debug|x64
+		{02A8ED79-5EB6-E356-1DFA-ED8C2222CDCB}.Release|Win32.ActiveCfg = Release|Win32
+		{02A8ED79-5EB6-E356-1DFA-ED8C2222CDCB}.Release|x64.ActiveCfg = Release|x64
+		{02A8ED79-5EB6-E356-1DFA-ED8C2222CDCB}.Release|x64.Build.0 = Release|x64
+		{7982CC26-EE2C-9EA2-DB6D-974A5A0A7328}.Debug|Win32.ActiveCfg = Debug|Win32
+		{7982CC26-EE2C-9EA2-DB6D-974A5A0A7328}.Debug|Win32.Build.0 = Debug|Win32
+		{7982CC26-EE2C-9EA2-DB6D-974A5A0A7328}.Debug|x64.ActiveCfg = Debug|x64
+		{7982CC26-EE2C-9EA2-DB6D-974A5A0A7328}.Debug|x64.Build.0 = Debug|x64
+		{7982CC26-EE2C-9EA2-DB6D-974A5A0A7328}.Release|Win32.ActiveCfg = Release|Win32
+		{7982CC26-EE2C-9EA2-DB6D-974A5A0A7328}.Release|x64.ActiveCfg = Release|x64
+		{7982CC26-EE2C-9EA2-DB6D-974A5A0A7328}.Release|x64.Build.0 = Release|x64
+		{5D779B4B-C63B-84CB-A63A-D07CFA5596DE}.Debug|Win32.ActiveCfg = Debug|Win32
+		{5D779B4B-C63B-84CB-A63A-D07CFA5596DE}.Debug|Win32.Build.0 = Debug|Win32
+		{5D779B4B-C63B-84CB-A63A-D07CFA5596DE}.Debug|x64.ActiveCfg = Debug|x64
+		{5D779B4B-C63B-84CB-A63A-D07CFA5596DE}.Debug|x64.Build.0 = Debug|x64
+		{5D779B4B-C63B-84CB-A63A-D07CFA5596DE}.Release|Win32.ActiveCfg = Release|Win32
+		{5D779B4B-C63B-84CB-A63A-D07CFA5596DE}.Release|x64.ActiveCfg = Release|x64
+		{5D779B4B-C63B-84CB-A63A-D07CFA5596DE}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
