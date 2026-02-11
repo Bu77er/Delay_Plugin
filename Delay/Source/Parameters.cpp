@@ -10,6 +10,12 @@ Parameters::Parameters(juce::AudioProcessorValueTreeState& apvts)
 {
 	castParameter(apvts, gainParamID, gainParam);
 }
+//juce::AudioProcessorValueTreeState::ParameterLayout Parameters::createParameterLayout()
+//{
+//	juce::AudioProcessorValueTreeState::ParameterLayout layout;
+//	layout.add(std::make_unique<juce::AudioParameterFloat>(gainParamID, "Output Gain", juce::NormalisableRange<float> { -12.0f, 12.0f }, 0.0f));
+//	return layout;
+//}
 void Parameters::update() noexcept
 {
 	gainSmoother.setTargetValue(juce::Decibels::decibelsToGain(gainParam->get()));
