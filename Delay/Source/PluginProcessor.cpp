@@ -8,14 +8,18 @@
 
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include "ProtectYourEars.h"
 
 //==============================================================================
-DelayAudioProcessor::DelayAudioProcessor()
-     : AudioProcessor (BusesProperties()
-                       .withInput  ("Input",  juce::AudioChannelSet::stereo(), true)
-                       .withOutput ("Output", juce::AudioChannelSet::stereo(), true)),
-                        params(apvts)
+DelayAudioProcessor::DelayAudioProcessor() :
+    AudioProcessor(
+        BusesProperties()
+        .withInput("Input", juce::AudioChannelSet::stereo(), true)
+        .withOutput("Output", juce::AudioChannelSet::stereo(), true)
+    ),
+    params(apvts)
 {
+    // do nothing
 }
 
 DelayAudioProcessor::~DelayAudioProcessor()
@@ -30,29 +34,29 @@ const juce::String DelayAudioProcessor::getName() const
 
 bool DelayAudioProcessor::acceptsMidi() const
 {
-   #if JucePlugin_WantsMidiInput
+#if JucePlugin_WantsMidiInput
     return true;
-   #else
+#else
     return false;
-   #endif
+#endif
 }
 
 bool DelayAudioProcessor::producesMidi() const
 {
-   #if JucePlugin_ProducesMidiOutput
+#if JucePlugin_ProducesMidiOutput
     return true;
-   #else
+#else
     return false;
-   #endif
+#endif
 }
 
 bool DelayAudioProcessor::isMidiEffect() const
 {
-   #if JucePlugin_IsMidiEffect
+#if JucePlugin_IsMidiEffect
     return true;
-   #else
+#else
     return false;
-   #endif
+#endif
 }
 
 double DelayAudioProcessor::getTailLengthSeconds() const
@@ -63,7 +67,7 @@ double DelayAudioProcessor::getTailLengthSeconds() const
 int DelayAudioProcessor::getNumPrograms()
 {
     return 1;   // NB: some hosts don't cope very well if you tell them there are 0 programs,
-                // so this should be at least 1, even if you're not really implementing programs.
+    // so this should be at least 1, even if you're not really implementing programs.
 }
 
 int DelayAudioProcessor::getCurrentProgram()
@@ -71,25 +75,41 @@ int DelayAudioProcessor::getCurrentProgram()
     return 0;
 }
 
-void DelayAudioProcessor::setCurrentProgram (int index)
+void DelayAudioProcessor::setCurrentProgram(int index)
 {
 }
 
-const juce::String DelayAudioProcessor::getProgramName (int index)
+const juce::String DelayAudioProcessor::getProgramName(int index)
 {
     return {};
 }
 
-void DelayAudioProcessor::changeProgramName (int index, const juce::String& newName)
+void DelayAudioProcessor::changeProgramName(int index, const juce::String& newName)
 {
 }
 
 //==============================================================================
-void DelayAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
+void DelayAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
     params.prepareToPlay(sampleRate);
     params.reset();
 
+    juce::dsp::ProcessSpec spec;
+    spec.sampleRate = sampleRate;
+    spec.maximumBlockSize = juce::uint32(samplesPerBlock);
+    spec.numChannels = 2;
+
+    delayLine.prepare(spec);
+
+    double numSamples = Parameters::maxDelayTime / 1000.0 * sampleRate;
+    int maxDelayInSamples = int(std::ceil(numSamples));
+    delayLine.setMaximumDelayInSamples(maxDelayInSamples);
+    delayLine.reset();
+
+    //DBG(maxDelayInSamples);
+
+    feedbackL = 0.0f;
+    feedbackR = 0.0f;
 }
 
 void DelayAudioProcessor::releaseResources()
@@ -98,52 +118,88 @@ void DelayAudioProcessor::releaseResources()
     // spare memory, etc.
 }
 
-#ifndef JucePlugin_PreferredChannelConfigurations
-bool DelayAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
+bool DelayAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
 {
-    return layouts.getMainOutputChannelSet() == juce::AudioChannelSet::stereo();
-  #if JucePlugin_IsMidiEffect
-    juce::ignoreUnused (layouts);
-    return true;
-  #else
-    // This is the place where you check if the layout is supported.
-    // In this template code we only support mono or stereo.
-    // Some plugin hosts, such as certain GarageBand versions, will only
-    // load plugins that support stereo bus layouts.
-    if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::mono()
-     && layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo())
-        return false;
+    const auto mono = juce::AudioChannelSet::mono();
+    const auto stereo = juce::AudioChannelSet::stereo();
+    const auto mainIn = layouts.getMainInputChannelSet();
+    const auto mainOut = layouts.getMainOutputChannelSet();
 
-    // This checks if the input layout matches the output layout
-   #if ! JucePlugin_IsSynth
-    if (layouts.getMainOutputChannelSet() != layouts.getMainInputChannelSet())
-        return false;
-   #endif
+    //DBG("isBusesLayoutSupported, in: " << mainIn.getDescription()
+    //        << ", out: " << mainOut.getDescription());
 
-    return true;
-  #endif
+    if (mainIn == mono && mainOut == mono) { return true; }
+    if (mainIn == mono && mainOut == stereo) { return true; }
+    if (mainIn == stereo && mainOut == stereo) { return true; }
+
+    return false;
 }
-#endif
 
-void DelayAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,[[maybe_unused]] juce::MidiBuffer& midiMessages)
+void DelayAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, [[maybe_unused]] juce::MidiBuffer& midiMessages)
 {
     juce::ScopedNoDenormals noDenormals;
-    auto totalNumInputChannels  = getTotalNumInputChannels();
+    auto totalNumInputChannels = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
-    
+
+    // In case we have more outputs than inputs, this code clears any output
+    // channels that didn't contain input data, (because these aren't
+    // guaranteed to be empty - they may contain garbage).
+    // This is here to avoid people getting screaming feedback
+    // when they first compile a plugin, but obviously you don't need to keep
+    // this code if your algorithm always overwrites all the output channels.
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
-        buffer.clear (i, 0, buffer.getNumSamples());
+        buffer.clear(i, 0, buffer.getNumSamples());
 
     params.update();
-    float* channelDataL = buffer.getWritePointer(0);
-    float* channelDataR = buffer.getWritePointer(1);
 
-    for (int sample = 0; sample < buffer.getNumSamples(); sample++)
-    {
+    float sampleRate = float(getSampleRate());
+
+    auto mainInput = getBusBuffer(buffer, true, 0);
+    auto mainInputChannels = mainInput.getNumChannels();
+    auto isMainInputStereo = mainInputChannels > 1;
+    const float* inputDataL = mainInput.getReadPointer(0);
+    const float* inputDataR = mainInput.getReadPointer(isMainInputStereo ? 1 : 0);
+
+    auto mainOutput = getBusBuffer(buffer, false, 0);
+    auto mainOutputChannels = mainOutput.getNumChannels();
+    auto isMainOutputStereo = mainOutputChannels > 1;
+    float* outputDataL = mainOutput.getWritePointer(0);
+    float* outputDataR = mainOutput.getWritePointer(isMainOutputStereo ? 1 : 0);
+
+    for (int sample = 0; sample < buffer.getNumSamples(); ++sample) {
         params.smoothen();
-        channelDataL[sample] *= params.gain;
-        channelDataR[sample] *= params.gain;
+
+        float delayInSamples = params.delayTime / 1000.0f * sampleRate;
+        delayLine.setDelay(delayInSamples);
+
+        float dryL = inputDataL[sample];
+        float dryR = inputDataR[sample];
+
+        float mono = (dryL + dryR) * 0.5f;
+
+        delayLine.pushSample(0, mono * params.panL + feedbackR);
+        delayLine.pushSample(1, mono * params.panR + feedbackL);
+
+        float wetL = delayLine.popSample(0);
+        float wetR = delayLine.popSample(1);
+
+        // multi-tap delay
+        //wetL += delayLine.popSample(0, delayInSamples * 2.0f, false) * 0.7f;
+        //wetR += delayLine.popSample(1, delayInSamples * 2.0f, false) * 0.7f;
+
+        feedbackL = wetL * params.feedback;
+        feedbackR = wetR * params.feedback;
+
+        float mixL = dryL + wetL * params.mix;
+        float mixR = dryR + wetR * params.mix;
+
+        outputDataL[sample] = mixL * params.gain;
+        outputDataR[sample] = mixR * params.gain;
     }
+
+#if JUCE_DEBUG
+    protectYourEars(buffer);
+#endif
 }
 
 //==============================================================================
@@ -154,20 +210,23 @@ bool DelayAudioProcessor::hasEditor() const
 
 juce::AudioProcessorEditor* DelayAudioProcessor::createEditor()
 {
-    return new DelayAudioProcessorEditor (*this);
+    return new DelayAudioProcessorEditor(*this);
 }
 
 //==============================================================================
-void DelayAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
+void DelayAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
 {
     copyXmlToBinary(*apvts.copyState().createXml(), destData);
+
+    //DBG(apvts.copyState().toXmlString());
 }
 
-void DelayAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
+void DelayAudioProcessor::setStateInformation(const void* data, int sizeInBytes)
 {
     std::unique_ptr<juce::XmlElement> xml(getXmlFromBinary(data, sizeInBytes));
-    if (xml.get() != nullptr && xml->hasTagName(apvts.state.getType()))
+    if (xml.get() != nullptr && xml->hasTagName(apvts.state.getType())) {
         apvts.replaceState(juce::ValueTree::fromXml(*xml));
+    }
 }
 
 //==============================================================================
@@ -175,12 +234,4 @@ void DelayAudioProcessor::setStateInformation (const void* data, int sizeInBytes
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
     return new DelayAudioProcessor();
-}
-
-juce::AudioProcessorValueTreeState::ParameterLayout Parameters::createParameterLayout()
-{
-    juce::AudioProcessorValueTreeState::ParameterLayout layout;
-    layout.add(std::make_unique<juce::AudioParameterFloat>(gainParamID, "Output Gain", juce::NormalisableRange<float> {-12.0f, 12.0f}, 0.0f));
-
-    return layout;
 }
